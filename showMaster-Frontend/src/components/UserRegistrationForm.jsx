@@ -16,7 +16,7 @@ function UserRegistrationForm() {
     mobileNo: '',
     address: '',
     gender: '',
-    roles: '' // Add roles field
+    roles: ''
   });
 
   const mutation = useMutation({
@@ -56,7 +56,6 @@ function UserRegistrationForm() {
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Register User</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name:</label>
           <input
@@ -69,7 +68,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Email */}
         <div>
           <label htmlFor="emailId" className="block text-sm font-medium text-gray-700">Email:</label>
           <input
@@ -82,7 +80,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Password */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password:</label>
           <input
@@ -95,7 +92,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Age */}
         <div>
           <label htmlFor="age" className="block text-sm font-medium text-gray-700">Age:</label>
           <input
@@ -107,7 +103,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Mobile No */}
         <div>
           <label htmlFor="mobileNo" className="block text-sm font-medium text-gray-700">Mobile No:</label>
           <input
@@ -119,7 +114,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Address */}
         <div>
           <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address:</label>
           <input
@@ -131,7 +125,6 @@ function UserRegistrationForm() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {/* Gender */}
         <div>
           <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender:</label>
           <select
@@ -147,7 +140,6 @@ function UserRegistrationForm() {
             <option value="OTHER">Other</option>
           </select>
         </div>
-        {/* Roles */}
         <div>
           <label htmlFor="roles" className="block text-sm font-medium text-gray-700">Role:</label>
           <select
@@ -162,7 +154,6 @@ function UserRegistrationForm() {
             <option value="ROLE_ADMIN">Admin</option>
           </select>
         </div>
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={mutation.isPending}

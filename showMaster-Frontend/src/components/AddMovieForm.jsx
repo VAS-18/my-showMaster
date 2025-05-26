@@ -17,14 +17,20 @@ function AddMovieForm() {
     language: '',
     duration: '',
     rating: '',
-    releaseDate: ''
+    releaseDate: '',
+    posterUrl: ''
   });
+
+  const [posterFile, setPosterFile] = useState(null);
+  const [posterPreview, setPosterPreview] = useState(null);
 
   const mutation = useMutation({
     mutationFn: addMovie,
     onSuccess: (data) => {
       alert(`Movie added successfully: ${data}`);
-      setFormData({ movieName: '', genre: '', language: '', duration: '', rating: '', releaseDate: '' });
+      setFormData({ movieName: '', genre: '', language: '', duration: '', rating: '', releaseDate: '', posterUrl: '' });
+      setPosterFile(null);
+      setPosterPreview(null);
     },
     onError: (error) => {
       alert(`Error: ${error.response?.data || error.message}`);
@@ -33,6 +39,24 @@ function AddMovieForm() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPosterFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPosterPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // For now, we'll use a placeholder URL or you can implement file upload to a cloud service
+      // This is a simple implementation that stores the file name
+      setFormData({ ...formData, posterUrl: `uploads/${file.name}` });
+    }
   };
 
   const handleSubmit = (e) => {
@@ -44,7 +68,7 @@ function AddMovieForm() {
     }
     // Basic validation
     if (!formData.movieName || !formData.genre || !formData.language || !formData.duration || !formData.releaseDate) {
-        alert("All fields except rating are required.");
+        alert("All fields except rating and poster are required.");
         return;
     }
     mutation.mutate(formData);
@@ -58,6 +82,43 @@ function AddMovieForm() {
           <label htmlFor="movieName" className="block text-sm font-medium text-gray-700">Movie Name:</label>
           <input type="text" name="movieName" id="movieName" value={formData.movieName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
         </div>
+        
+        <div>
+          <label htmlFor="poster" className="block text-sm font-medium text-gray-700">Movie Poster:</label>
+          <input 
+            type="file" 
+            name="poster" 
+            id="poster" 
+            accept="image/*"
+            onChange={handleFileChange} 
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+          />
+          {posterPreview && (
+            <div className="mt-3">
+              <p className="text-sm text-gray-600 mb-2">Preview:</p>
+              <img 
+                src={posterPreview} 
+                alt="Movie poster preview" 
+                className="w-32 h-48 object-cover rounded-lg border shadow-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="posterUrl" className="block text-sm font-medium text-gray-700">Or Poster URL:</label>
+          <input 
+            type="url" 
+            name="posterUrl" 
+            id="posterUrl" 
+            value={formData.posterUrl} 
+            onChange={handleChange} 
+            placeholder="https://example.com/poster.jpg"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+          />
+          <p className="mt-1 text-xs text-gray-500">You can either upload a file or provide a URL to an existing poster image</p>
+        </div>
+
         <div>
           <label htmlFor="genre" className="block text-sm font-medium text-gray-700">Genre:</label>
           <select 

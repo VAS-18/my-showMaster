@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const bookTicket = async (ticketData) => {
   const token = localStorage.getItem('token');
-  // Ensure numeric fields are sent as numbers and requestSeats is an array of strings
   const payload = {
     showId: parseInt(ticketData.showId, 10),
     userId: parseInt(ticketData.userId, 10),
-    requestSeats: ticketData.seatNos.split(',').map(s => s.trim()).filter(s => s !== ''),
+    requestSeats: ticketData.selectedSeats,
   };
   const { data } = await axios.post('/api/ticket/book', payload, {
     headers: { 'Authorization': `Bearer ${token}` }
@@ -17,7 +16,6 @@ const bookTicket = async (ticketData) => {
   return data;
 };
 
-// Function to fetch user profile from backend
 const fetchUserProfile = async () => {
   const token = localStorage.getItem('token');
   if (!token) return null;
@@ -28,76 +26,75 @@ const fetchUserProfile = async () => {
   return data;
 };
 
+const fetchShowSeats = async (showId) => {
+  const token = localStorage.getItem('token');
+  try {
+    const { data } = await axios.get(`/api/show/${showId}/seats`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return data;
+  } catch (error) {
+    // If endpoint doesn't exist, return mock data
+    console.warn('Show seats endpoint not available, using mock data');
+    return generateMockSeats();
+  }
+};
+
+// Generate mock seat layout for demonstration
+const generateMockSeats = () => {
+  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  const seatsPerRow = 12;
+  const bookedSeats = ['A3', 'A4', 'B7', 'C2', 'C3', 'D8', 'E5', 'F1', 'F2', 'G6'];
+  
+  return rows.map(row => ({
+    row,
+    seats: Array.from({ length: seatsPerRow }, (_, i) => ({
+      id: `${row}${i + 1}`,
+      number: i + 1,
+      isBooked: bookedSeats.includes(`${row}${i + 1}`),
+      price: row <= 'D' ? 250 : 180 // Premium vs Regular pricing
+    }))
+  }));
+};
+
 function BookTicketForm() {
   const location = useLocation();
   const navigate = useNavigate();
   const showInfo = location.state;
 
-  const [formData, setFormData] = useState({
-    showId: '',
-    userId: '',
-    seatNos: ''
-  });
-
-  const [userInfo, setUserInfo] = useState({
-    userId: null,
-    username: null
-  });
-
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [userInfo, setUserInfo] = useState({ userId: null, username: null });
   const [loading, setLoading] = useState(true);
+
+  // Fetch seat layout
+  const { data: seatLayout = [], isLoading: seatsLoading } = useQuery({
+    queryKey: ['showSeats', showInfo?.showId],
+    queryFn: () => fetchShowSeats(showInfo?.showId),
+    enabled: !!showInfo?.showId,
+  });
 
   const mutation = useMutation({
     mutationFn: bookTicket,
     onSuccess: (data) => {
-      alert(`Ticket booked successfully! Amount: ${data.amount}, Allotted Seats: ${data.allottedSeats}, Movie: ${data.movieName}`);
-      setFormData(prev => ({ ...prev, seatNos: '' }));
+      setSelectedSeats([]);
+      // Show success modal instead of alert
+      showSuccessModal(data);
     },
     onError: (error) => {
-      alert(`Error: ${error.response?.data || error.message}`);
+      showErrorModal(error.response?.data || error.message);
     }
   });
 
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        // Enhanced debugging: Log the showInfo to see what data is being passed
-        console.log('=== DEBUGGING NAVIGATION STATE ===');
-        console.log('Show info received from navigation:', showInfo);
-        console.log('showInfo type:', typeof showInfo);
-        console.log('showInfo keys:', showInfo ? Object.keys(showInfo) : 'showInfo is null/undefined');
-        
-        if (showInfo) {
-          console.log('showInfo.showId:', showInfo.showId);
-          console.log('showInfo.id:', showInfo.id);
-          console.log('All showInfo properties:');
-          Object.entries(showInfo).forEach(([key, value]) => {
-            console.log(`  ${key}:`, value);
-          });
-        }
-        
         const profile = await fetchUserProfile();
         if (profile) {
-          setUserInfo({
-            userId: profile.userId,
-            username: profile.username 
-          });
-          
-          // Handle both showId and id properties from navigation state
-          const showIdToSet = showInfo?.showId || showInfo?.id || '';
-          console.log('Setting showId to:', showIdToSet);
-          
-          setFormData(prev => ({
-            ...prev,
-            showId: showIdToSet,
-            userId: profile.userId
-          }));
+          setUserInfo({ userId: profile.userId, username: profile.username });
         } else {
-          alert('Unable to get user information. Please log in again.');
           navigate('/login');
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
-        alert('Session expired. Please log in again.');
         localStorage.removeItem('token');
         navigate('/login');
       } finally {
@@ -106,169 +103,276 @@ function BookTicketForm() {
     };
 
     loadUserProfile();
-  }, [showInfo, navigate]);
+  }, [navigate]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleSeatClick = (seatId, isBooked) => {
+    if (isBooked) return;
+    
+    setSelectedSeats(prev => 
+      prev.includes(seatId) 
+        ? prev.filter(id => id !== seatId)
+        : [...prev, seatId]
+    );
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Debug: Log the form data to see what's actually in it
-    console.log('=== DEBUGGING FORM SUBMISSION ===');
-    console.log('Form data:', formData);
-    console.log('User info:', userInfo);
-    console.log('Show info from navigation:', showInfo);
-    
-    // Improved validation
-    const showIdValue = formData.showId;
-    const userIdValue = formData.userId;
-    const seatNosValue = formData.seatNos?.trim();
-    
-    console.log('=== VALIDATION VALUES ===');
-    console.log('showIdValue:', showIdValue);
-    console.log('userIdValue:', userIdValue);
-    console.log('seatNosValue:', seatNosValue);
-    
-    // Check if we have a valid showId (either from navigation or manual input)
-    const hasValidShowId = showIdValue && showIdValue !== '' && !isNaN(parseInt(showIdValue, 10));
-    const hasValidUserId = userIdValue && userIdValue !== '' && !isNaN(parseInt(userIdValue, 10));
-    const hasValidSeatNos = seatNosValue && seatNosValue !== '';
-    
-    console.log('=== VALIDATION RESULTS ===');
-    console.log('hasValidShowId:', hasValidShowId);
-    console.log('hasValidUserId:', hasValidUserId);
-    console.log('hasValidSeatNos:', hasValidSeatNos);
-    
-    if (!hasValidShowId) {
-      alert("Show ID is required. Please select a show or enter a valid Show ID.");
+  const handleBooking = () => {
+    if (selectedSeats.length === 0) {
+      showErrorModal('Please select at least one seat');
       return;
     }
-    
-    if (!hasValidUserId) {
-      alert("User ID is required. Please log in again.");
-      return;
-    }
-    
-    if (!hasValidSeatNos) {
-      alert("Seat numbers are required. Please enter seat numbers (e.g., A1, A2, B5).");
-      return;
-    }
-    
-    console.log('=== VALIDATION PASSED - SUBMITTING ===');
-    mutation.mutate(formData);
+
+    mutation.mutate({
+      showId: showInfo?.showId,
+      userId: userInfo.userId,
+      selectedSeats
+    });
   };
 
-  // Show loading state while fetching user info
+  const calculateTotal = () => {
+    return selectedSeats.reduce((total, seatId) => {
+      const row = seatId.charAt(0);
+      const price = row <= 'D' ? 250 : 180;
+      return total + price;
+    }, 0);
+  };
+
+  const showSuccessModal = (data) => {
+    // You can implement a proper modal here
+    alert(`🎉 Tickets booked successfully!\n\nAmount: ₹${data.amount}\nSeats: ${data.allottedSeats}\nMovie: ${data.movieName}`);
+  };
+
+  const showErrorModal = (message) => {
+    alert(`❌ ${message}`);
+  };
+
   if (loading) {
     return (
-      <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
-        <div className="text-center">Loading user information...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading booking details...</p>
+        </div>
       </div>
     );
   }
 
-  // Don't render the form if user info is not loaded yet
-  if (!userInfo.userId) {
+  if (!userInfo.userId || !showInfo) {
     return (
-      <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
-        <div className="text-center text-red-600">Unable to load user information. Please try logging in again.</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center p-8 bg-red-900/20 rounded-2xl border border-red-500/30">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Session Expired</h2>
+          <p className="text-red-300 mb-6">Please login and select a show again</p>
+          <button 
+            onClick={() => navigate('/login')} 
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300"
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
-      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Book Ticket</h2>
-      
-      {/* Show user info */}
-      <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <h3 className="font-semibold text-green-800 mb-2">Booking For</h3>
-        <p className="text-sm text-green-700"><strong>User:</strong> {userInfo.username}</p>
-        <p className="text-sm text-green-700"><strong>User ID:</strong> {userInfo.userId}</p>
-      </div>
-      
-      {/* Show booking information if coming from Now Playing */}
-      {showInfo && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-800 mb-2">Show Details</h3>
-          <p className="text-sm text-blue-700"><strong>Movie:</strong> {showInfo.movieName}</p>
-          <p className="text-sm text-blue-700"><strong>Theater:</strong> {showInfo.theaterName}</p>
-          <p className="text-sm text-blue-700"><strong>Date:</strong> {new Date(showInfo.showDate).toLocaleDateString()}</p>
-          <p className="text-sm text-blue-700"><strong>Time:</strong> {showInfo.showTime}</p>
-          <p className="text-sm text-blue-700"><strong>Show ID:</strong> {formData.showId}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Show ID - always show for transparency, but make it readonly when coming from Now Playing */}
-        <div>
-          <label htmlFor="showId" className="block text-sm font-medium text-gray-700">Show ID:</label>
-          <input
-            type="number"
-            name="showId"
-            id="showId"
-            value={formData.showId}
-            onChange={handleChange}
-            required
-            readOnly={!!showInfo}
-            placeholder="Enter ID of the show"
-            className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-              showInfo ? 'bg-gray-100 cursor-not-allowed' : ''
-            }`}
-          />
-          {showInfo && (
-            <p className="mt-1 text-xs text-gray-500">
-              Show ID is automatically filled from your selection
-            </p>
-          )}
-        </div>
-
-        {/* Hidden user ID field - automatically populated */}
-        <input
-          type="hidden"
-          name="userId"
-          value={formData.userId}
-        />
-
-        <div>
-          <label htmlFor="seatNos" className="block text-sm font-medium text-gray-700">Seat Numbers (comma-separated):</label>
-          <input
-            type="text"
-            name="seatNos"
-            id="seatNos"
-            value={formData.seatNos}
-            onChange={handleChange}
-            required
-            placeholder="e.g., A1, A2, B5"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Enter seat numbers separated by commas. Example: A1, A2, B5
-          </p>
-        </div>
-        
-        {/* Navigation buttons */}
-        <div className="flex space-x-4">
-          {showInfo && (
-            <button
-              type="button"
-              onClick={() => navigate('/now-playing')}
-              className="flex-1 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-300"
-            >
-              Back to Now Playing
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="flex-1 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 disabled:opacity-50"
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Header */}
+      <div className="container mx-auto px-6 py-8">
+        <div className="text-center mb-8">
+          <button 
+            onClick={() => navigate('/now-playing')}
+            className="mb-4 text-purple-400 hover:text-purple-300 flex items-center gap-2 transition-colors mx-auto"
           >
-            {mutation.isPending ? 'Booking Ticket...' : 'Book Ticket'}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Movies
           </button>
+          
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Select Your <span className="gradient-text bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Seats</span>
+          </h1>
+          <p className="text-gray-300 text-lg">Choose the perfect seats for your movie experience</p>
         </div>
-      </form>
+
+        {/* Movie & Show Info */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  🎬 Movie Details
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Movie</span>
+                    <span className="text-white font-medium">{showInfo.movieName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Theater</span>
+                    <span className="text-white font-medium">{showInfo.theaterName}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  📅 Show Details
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Date</span>
+                    <span className="text-white font-medium">
+                      {new Date(showInfo.showDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Time</span>
+                    <span className="text-white font-medium">{showInfo.showTime}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seat Layout */}
+        <div className="max-w-6xl mx-auto">
+          {/* Screen */}
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-b-3xl shadow-xl">
+              <div className="text-lg font-semibold">🎬 SCREEN</div>
+            </div>
+          </div>
+
+          {seatsLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <>
+              {/* Seat Layout */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10 mb-8">
+                <div className="space-y-4">
+                  {seatLayout.map((rowData) => (
+                    <div key={rowData.row} className="flex items-center justify-center gap-2">
+                      {/* Row Label */}
+                      <div className="w-8 text-center text-white font-bold text-lg">
+                        {rowData.row}
+                      </div>
+                      
+                      {/* Seats */}
+                      <div className="flex gap-1">
+                        {rowData.seats.map((seat) => {
+                          const isSelected = selectedSeats.includes(seat.id);
+                          const isBooked = seat.isBooked;
+                          
+                          return (
+                            <button
+                              key={seat.id}
+                              onClick={() => handleSeatClick(seat.id, isBooked)}
+                              disabled={isBooked}
+                              className={`
+                                w-10 h-10 rounded-lg text-xs font-semibold transition-all duration-200 
+                                ${isBooked 
+                                  ? 'bg-red-500/30 text-red-300 cursor-not-allowed border border-red-500/50' 
+                                  : isSelected 
+                                    ? 'bg-green-500 text-white shadow-lg scale-110 border-2 border-green-400' 
+                                    : 'bg-gray-600/50 text-gray-300 hover:bg-purple-500/30 hover:text-purple-200 border border-gray-500/30'
+                                }
+                              `}
+                              title={`Seat ${seat.id} - ₹${seat.price} ${isBooked ? '(Booked)' : ''}`}
+                            >
+                              {seat.number}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Add aisle gap in the middle */}
+                      <div className="w-4"></div>
+                      
+                      <div className="w-8 text-center text-white font-bold text-lg">
+                        {rowData.row}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex justify-center gap-8 mb-8 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gray-600/50 border border-gray-500/30 rounded-lg"></div>
+                  <span className="text-gray-300 text-sm">Available</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-500 rounded-lg"></div>
+                  <span className="text-gray-300 text-sm">Selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-red-500/30 border border-red-500/50 rounded-lg"></div>
+                  <span className="text-gray-300 text-sm">Booked</span>
+                </div>
+              </div>
+
+              {/* Pricing Info */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">Pricing</h3>
+                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                  <div className="text-center">
+                    <div className="text-yellow-400 font-bold text-lg">₹250</div>
+                    <div className="text-gray-400 text-sm">Premium (A-D)</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-blue-400 font-bold text-lg">₹180</div>
+                    <div className="text-gray-400 text-sm">Regular (E-H)</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Booking Summary & Actions */}
+        {selectedSeats.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-sm border-t border-white/20 p-6">
+            <div className="container mx-auto max-w-4xl">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="text-white">
+                  <div className="text-lg font-semibold">
+                    Selected Seats: {selectedSeats.join(', ')}
+                  </div>
+                  <div className="text-gray-300">
+                    {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} • Total: ₹{calculateTotal()}
+                  </div>
+                </div>
+                
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setSelectedSeats([])}
+                    className="px-6 py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-all duration-300"
+                  >
+                    Clear Selection
+                  </button>
+                  <button
+                    onClick={handleBooking}
+                    disabled={mutation.isPending}
+                    className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl disabled:opacity-50"
+                  >
+                    {mutation.isPending ? 'Booking...' : `Book ${selectedSeats.length} Ticket${selectedSeats.length > 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

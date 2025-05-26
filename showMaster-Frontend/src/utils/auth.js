@@ -7,7 +7,6 @@ const decodeToken = (token) => {
     const decodedPayload = atob(payload);
     return JSON.parse(decodedPayload);
   } catch (error) {
-    console.error('Error decoding token:', error);
     return null;
   }
 };
