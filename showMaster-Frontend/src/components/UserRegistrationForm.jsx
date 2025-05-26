@@ -147,7 +147,7 @@ function UserRegistrationForm() {
             <option value="OTHER">Other</option>
           </select>
         </div>
-        {/* Roles - New Field */}
+        {/* Roles */}
         <div>
           <label htmlFor="roles" className="block text-sm font-medium text-gray-700">Role:</label>
           <select

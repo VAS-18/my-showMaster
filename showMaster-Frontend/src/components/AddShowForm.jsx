@@ -20,7 +20,7 @@ function AddShowForm() {
   const [formData, setFormData] = useState({
     movieId: '',
     theaterId: '',
-    showTime: '',
+    showStartTime: '',  // Changed from 'showTime' to 'showStartTime'
     showDate: ''
   });
 
@@ -28,7 +28,7 @@ function AddShowForm() {
     mutationFn: addShow,
     onSuccess: (data) => {
       alert(`Show added successfully: ${data}`);
-      setFormData({ movieId: '', theaterId: '', showTime: '', showDate: '' });
+      setFormData({ movieId: '', theaterId: '', showStartTime: '', showDate: '' });
     },
     onError: (error) => {
       alert(`Error: ${error.response?.data || error.message}`);
@@ -46,7 +46,7 @@ function AddShowForm() {
       alert('You must be logged in to add a show.');
       return;
     }
-    if (!formData.movieId || !formData.theaterId || !formData.showTime || !formData.showDate) {
+    if (!formData.movieId || !formData.theaterId || !formData.showStartTime || !formData.showDate) {
       alert("All fields are required.");
       return;
     }
@@ -96,12 +96,12 @@ function AddShowForm() {
           />
         </div>
         <div>
-          <label htmlFor="showTime" className="block text-sm font-medium text-gray-700">Show Time:</label>
+          <label htmlFor="showStartTime" className="block text-sm font-medium text-gray-700">Show Time:</label>
           <input
             type="time"
-            name="showTime"
-            id="showTime"
-            value={formData.showTime}
+            name="showStartTime"
+            id="showStartTime"
+            value={formData.showStartTime}
             onChange={handleChange}
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
