@@ -1,5 +1,8 @@
 package com.jts.movie.services;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +29,18 @@ public class MovieService {
 		
 		movieRepository.save(movie);
 		return "The movie has been added successfully";
+	}
+
+	public List<Movie> getAllMovies() {
+		return movieRepository.findAll();
+	}
+
+	public Movie getMovieById(Integer id) {
+		Optional<Movie> movie = movieRepository.findById(id);
+		if (movie.isPresent()) {
+			return movie.get();
+		}
+		throw new RuntimeException("Movie not found with id: " + id);
 	}
 
 }

@@ -1,5 +1,6 @@
 package com.jts.movie.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,7 @@ public class Theater {
     private String address;
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL)
+    @JsonManagedReference("theater-theaterseat")
     private List<TheaterSeat> theaterSeatList = new ArrayList<>();
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL)

@@ -14,15 +14,13 @@ import com.jts.movie.repositories.UserRepository;
 @Component
 public class UserInfoUserDetailsService implements UserDetailsService {
 
-	@Autowired
-	private UserRepository repository;
+    @Autowired
+    private UserRepository userRepository;
 
-	@Override
-	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		Optional<User> userInfo = repository.findByEmailId(username);
-
-		return userInfo.map(UserInfoUserDetails::new)
-				.orElseThrow(() -> new UsernameNotFoundException("user not found " + username));
-
-	}
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Optional<User> userInfo = userRepository.findByEmailId(username);
+        return userInfo.map(UserInfoUserDetails::new)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
 }

@@ -15,4 +15,5 @@ public class MovieRequest {
 	private Date releaseDate;
 	private Genre genre;
 	private Language language;
+	private String posterUrl;
 }

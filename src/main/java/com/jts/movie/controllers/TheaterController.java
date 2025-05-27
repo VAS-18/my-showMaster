@@ -13,7 +13,7 @@ import com.jts.movie.request.TheaterSeatRequest;
 import com.jts.movie.services.TheaterService;
 
 @RestController
-@RequestMapping("/theater")
+@RequestMapping("/api/theater")
 public class TheaterController {
 
 	@Autowired

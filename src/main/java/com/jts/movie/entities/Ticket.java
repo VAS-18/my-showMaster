@@ -1,5 +1,6 @@
 package com.jts.movie.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,10 +31,12 @@ public class Ticket {
 
 	@ManyToOne
 	@JoinColumn
+	@JsonBackReference("show-ticket")
 	private Show show;
 
 	@ManyToOne
 	@JoinColumn
+	@JsonBackReference("user-ticket")
 	private User user;
 
 }

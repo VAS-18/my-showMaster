@@ -1,5 +1,6 @@
 package com.jts.movie.services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -110,4 +111,21 @@ public class TicketService {
 		return sb.toString();
 	}
 
+	public List<TicketResponse> getUserTickets(Integer userId) throws UserDoesNotExists {
+		Optional<User> userOpt = userRepository.findById(userId);
+		
+		if (userOpt.isEmpty()) {
+			throw new UserDoesNotExists();
+		}
+		
+		List<Ticket> tickets = ticketRepository.findByUserIdOrderByBookedAtDesc(userId);
+		List<TicketResponse> ticketResponses = new ArrayList<>();
+		
+		for (Ticket ticket : tickets) {
+			TicketResponse response = TicketConvertor.returnTicket(ticket.getShow(), ticket);
+			ticketResponses.add(response);
+		}
+		
+		return ticketResponses;
+	}
 }

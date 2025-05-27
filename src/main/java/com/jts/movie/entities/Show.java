@@ -5,6 +5,9 @@ import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -37,15 +40,19 @@ public class Show {
 
     @ManyToOne
     @JoinColumn
+    @JsonBackReference
     private Movie movie;
 
     @ManyToOne
     @JoinColumn
+    @JsonIgnoreProperties({"showList", "theaterSeatList"})
     private Theater theater;
 
     @OneToMany(mappedBy = "show", cascade = CascadeType.ALL)
+    @JsonManagedReference("show-showseat")
     private List<ShowSeat> showSeatList = new ArrayList<>();
 
     @OneToMany(mappedBy = "show", cascade = CascadeType.ALL)
+    @JsonManagedReference("show-ticket")
     private List<Ticket> ticketList = new ArrayList<>();
 }

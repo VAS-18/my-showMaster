@@ -101,4 +101,17 @@ public class ShowService {
 
 		return "Show seats have been associated successfully";
 	}
+
+	public List<Show> getAllShows() {
+		return showRepository.findAll();
+	}
+
+	public List<Show> getShowsByMovieId(Integer movieId) {
+		Optional<Movie> movieOpt = movieRepository.findById(movieId);
+		if (movieOpt.isEmpty()) {
+			throw new MovieDoesNotExists();
+		}
+		Movie movie = movieOpt.get();
+		return movie.getShows();
+	}
 }

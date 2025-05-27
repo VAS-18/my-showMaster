@@ -1,5 +1,6 @@
 package com.jts.movie.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.jts.movie.enums.SeatType;
 
 import jakarta.persistence.*;
@@ -27,6 +28,7 @@ public class TheaterSeat {
 
     @ManyToOne
     @JoinColumn
+    @JsonBackReference("theater-theaterseat")
     private Theater theater;
 }
 

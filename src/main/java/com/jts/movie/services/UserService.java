@@ -28,7 +28,13 @@ public class UserService {
 			throw new UserExist();
 		}
 
-		User user = UserConvertor.userDtoToUser(userRequest,  passwordEncoder.encode("1234"));
+		// Set default role for new users, but allow override if roles are provided
+		if (userRequest.getRoles() == null || userRequest.getRoles().isEmpty()) {
+			userRequest.setRoles("ROLE_USER");
+		}
+		// If roles are explicitly provided, use them (allows creating admin users)
+
+		User user = UserConvertor.userDtoToUser(userRequest, passwordEncoder.encode(userRequest.getPassword()));
 
 		userRepository.save(user);
 		return "User Saved Successfully";

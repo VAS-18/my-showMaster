@@ -19,9 +19,18 @@ public class UserInfoUserDetails implements UserDetails {
 	private List<GrantedAuthority> authorities;
 
 	public UserInfoUserDetails(User userInfo) {
-		name = userInfo.getEmailId();
+		name = userInfo.getEmailId(); // Using emailId as username
 		password = userInfo.getPassword();
-		authorities = Arrays.stream(userInfo.getRoles().split(","))
+		
+		// Handle null or empty roles safely
+		String userRoles = userInfo.getRoles();
+		if (userRoles == null || userRoles.trim().isEmpty()) {
+			userRoles = "ROLE_USER"; // Default role if none assigned
+		}
+		
+		authorities = Arrays.stream(userRoles.split(","))
+				.map(role -> role.trim()) // Remove whitespace
+				.filter(role -> !role.isEmpty()) // Remove empty strings
 				.map(SimpleGrantedAuthority::new)
 				.collect(Collectors.toList());
 	}
@@ -41,4 +50,23 @@ public class UserInfoUserDetails implements UserDetails {
 		return name;
 	}
 
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return true;
+	}
 }

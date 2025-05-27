@@ -4,6 +4,7 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.jts.movie.enums.Genre;
 import com.jts.movie.enums.Language;
 
@@ -50,6 +51,9 @@ public class Movie {
     @Enumerated(value = EnumType.STRING)
     private Language language;
 
+    private String posterUrl;
+
     @OneToMany(mappedBy = "movie",cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Show> shows = new ArrayList<>();
 }

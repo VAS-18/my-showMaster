@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.jts.movie.enums.Gender;
 
 @Entity
@@ -43,5 +44,6 @@ public class User {
 	private String roles;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference("user-ticket")
     private List<Ticket> ticketList = new ArrayList<>();
 }
